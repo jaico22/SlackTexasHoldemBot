@@ -1,0 +1,1 @@
+source starterbot/bin/activate
