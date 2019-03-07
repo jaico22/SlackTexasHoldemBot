@@ -1,11 +1,11 @@
 import random
 
 class Deck : 
-    card_numbers = [i / 4 + 1 for i in range(0,52)]
+    card_numbers = [i / 4 + 2 for i in range(0,52)]
     card_suits   = [i % 4 for i in range(52)]
 
     def shuffleCards(self):
-        self.card_numbers = [i / 4 + 1 for i in range(0,52)]
+        self.card_numbers = [i / 4 + 2 for i in range(0,52)]
         self.card_suits = [i % 4 for i in range(52)]
         random.shuffle(self.card_numbers)
         random.shuffle(self.card_suits)
@@ -25,7 +25,7 @@ class Deck :
             response += "Queen of "
         elif number == 13 :
             response += "King of "
-        elif number == 1 :
+        elif number == 14 :
             response += "Ace of "
         if suit == 0 :
             response += "Spades"
