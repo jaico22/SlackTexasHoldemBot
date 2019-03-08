@@ -3,24 +3,39 @@ import time
 import re
 from slackclient import SlackClient
 from deck import Deck
+from hand import Hand
 
 class TexasHoldemBot:
     slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
     starterbot_id = None
     RTM_READ_DELAY = 1
+    
     ## Game related values
     players = []
-    game_state = "init"
-    game_started = False
+    hands   = []
+    bets    = []
+    
     ## Deck Related values
     deck = Deck()
+    
     ## Poker Related Values
     current_bet = 0
+    
+    ## State Machine Related values
+    game_state = 0
+    current_player = 0
+
+    # State Definitions
+    STATE_WAITING_ON_PLAYERS = 0 
+    STATE_BETTING = 1
+
+
     ## Commands
     COMMAND_RAISE = "Raise "
     COMMAND_START_GAME = "Start"
     COMMAND_END_GAME = "End Game"
     COMMAND_JOIN_GAME = "Join"
+    
     ## Regular expression for a mention
     MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
     print("Instanced")
@@ -75,8 +90,7 @@ class TexasHoldemBot:
 
         # Finds and executes the given command, filling in response
         response = None
-        # This is where you start to implement more commands!
-
+        
         # Increment bet
         if command.startswith(self.COMMAND_RAISE):
             amnt_to_raise = int(command[5:])
@@ -89,7 +103,7 @@ class TexasHoldemBot:
 
         # Start Round
         if command.startswith(self.COMMAND_START_GAME):
-            response = self.start_game()
+            response = self.start_game(channel)
             
         # Sends the response back to the channel
         self.slack_client.api_call(
@@ -98,26 +112,43 @@ class TexasHoldemBot:
             text=response or default_response
         )
 
-    def start_game(self):
+    def start_game(self,channel):
         # Shuffle the deck
         self.deck.shuffleCards()
-        # Test deal
-        num, suit = self.deck.draw()
-        response = self.deck.printCard(num,suit)
+        response = "Betting has commenced!"
+        # Deal two cards per each player
+        for i in range(len(self.players)) :
+            # First Card
+            num, suit = self.deck.draw()
+            self.hands[i].add_card(num,suit)
+            # Second Card
+            num, suit = self.deck.draw()
+            self.hands[i].add_card(num,suit)
+            # Notify User what their hand is
+            ephemeral_responce = self.hands[i].print_hand()
+            self.slack_client.api_call(
+                "chat.postEphemeral",
+                channel=channel,
+                text=ephemeral_responce,
+                user=self.players[i]
+            )
         return response
 
     def join_game(self,user):
         '''
             Checks if game hasn't started and adds 'user' to list of players if he's not already playing
         '''
-        if self.game_started == False :
+        if self.game_state == self.STATE_WAITING_ON_PLAYERS :
             user_not_playing = True
             for player in self.players :
                 if player == user :
                     user_not_playing = False
                     break
             if user_not_playing == True :
+                # Add User to list of players and create a corresponding value for bet and hand
                 self.players.append(user)
+                self.hands.append(Hand())
+                self.bets.append(0)
                 response = "USER has joined the game!"
             else :
                 response = "User is already in the game..."

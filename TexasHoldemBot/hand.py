@@ -9,19 +9,59 @@ class Hand:
     high_card = 0
 
     def clear(self):
+        '''
+        Resets players hand back to original state
+        '''
         self.card_nums = []
         self.card_suits = []
         self.rank = 0.0
         self.secondar_tb = 0.0
         self.high_card = 0
 
+    def print_hand(self):
+        '''
+        Returns a string representation of the players hands
+        '''
+        print_hand_out = "Your Current Hand: "
+        for i in range(len(self.card_nums)) :
+            print_hand_out += "["
+            # Print Number
+            if self.card_nums[i] <= 10 :
+                print_hand_out += str(self.card_nums[i]) 
+            elif self.card_nums[i] == 11 : 
+                print_hand_out += "Jack"
+            elif self.card_nums[i] == 12 : 
+                print_hand_out += "Queen"
+            elif self.card_nums[i] == 13 : 
+                print_hand_out += "King"
+            else :
+                print_hand_out += "Ace"
+            print_hand_out += " of "
+            # Print Suit
+            if self.card_suits[i] == 0 :
+                print_hand_out += "Spades"
+            elif self.card_suits[i] == 1 :
+                print_hand_out += "Diamonds"
+            elif self.card_suits[i] == 2 :
+                print_hand_out += "Clubs"
+            elif self.card_suits[i] == 3 :
+                print_hand_out += "Hearts"
+            print_hand_out += "] "
+        return print_hand_out
+
     def add_card(self,num,suits):
+        '''
+        Adds a card to the players hand
+        '''
         self.card_nums.append(num)
         self.card_suits.append(suits)
         if len(self.card_nums)==5 :
             self.rank_hand()
 
     def rank_hand(self):
+        '''
+         Determines a numberical value corresponding with the strenght of a hand; Lower is better!
+        '''
         self.rank = 0.0
         # Sort card numbers for easier processing
         card_nums_copy = self.card_nums
