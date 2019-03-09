@@ -108,7 +108,33 @@ class TexasHoldemGame:
             return self.chips[player_idx]
         else :
             return -1
-    
+
+    def go_all_in(self,user_id):
+        '''
+        Places all of the players chips in the pot
+        '''
+        player_idx = self.get_player_idx(user_id)
+        self.bets[player_idx] = self.chips[player_idx]
+        self.has_bet[player_idx] = True
+        self.all_in[player_idx] = True
+
+    def check(self,user_id):
+        # Determine if user can check
+        min_bet = 10000
+        max_bet = 0 
+        for i in range(len(self.bets)) :
+            if self.players_active[i] == True and self.all_in[i]==False:
+                if self.bets[i] < min_bet : 
+                    min_bet = self.bets[i]
+                if self.bets[i] > max_bet : 
+                    max_bet = self.bets[i]
+        if min_bet == max_bet :
+            player_idx = self.get_player_idx(user_id)
+            self.has_bet[player_idx] = True       
+            return 1
+        else :
+            return 0
+
     def call(self,user_id):
         '''
         Modified bet to equal maximum bet
