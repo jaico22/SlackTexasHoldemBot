@@ -14,6 +14,9 @@ while True :
         usr_input = raw_input('Type in Player Name or "start: "')
         if usr_input == 'start' :
             game.start_game()
+            for current_player_string in game.players : 
+                hand_string = game.print_hand(current_player_string)
+                print(hand_string)
             game_state = 1
         else : 
             game.add_player(usr_input)
@@ -31,6 +34,7 @@ while True :
     if game_state == 2 :
         current_player_string = game.players[cur_player]
         if game.players_active[cur_player] == True and game.all_in[cur_player] == False: 
+
             print(current_player_string + " please place bets/call/fold")
             usr_input = raw_input()
             print(usr_input[:3])
