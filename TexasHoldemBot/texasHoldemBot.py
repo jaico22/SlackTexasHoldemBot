@@ -6,39 +6,41 @@ from deck import Deck
 from hand import Hand
 
 class TexasHoldemBot:
-    slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
-    starterbot_id = None
-    RTM_READ_DELAY = 1
     
-    ## Game related values
-    players = []
-    hands   = []
-    bets    = []
-    
-    ## Deck Related values
-    deck = Deck()
-    
-    ## Poker Related Values
-    current_bet = 0
-    
-    ## State Machine Related values
-    game_state = 0
-    current_player = 0
+    def __init__(self) : 
+        self.slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
+        self.starterbot_id = None
+        self.RTM_READ_DELAY = 1
+        
+        ## Game related values
+        self.players = []
+        self.hands   = []
+        self.bets    = []
+        
+        ## Deck Related values
+        self.deck = Deck()
+        self.community_cards = []
 
-    # State Definitions
-    STATE_WAITING_ON_PLAYERS = 0 
-    STATE_BETTING = 1
+        ## Poker Related Values
+        self.current_bet = 0
+        
+        ## State Machine Related values
+        self.game_state = 0
+        self.current_player = 0
 
+        # State Definitions
+        self.STATE_WAITING_ON_PLAYERS = 0 
+        self.STATE_BETTING = 1
 
-    ## Commands
-    COMMAND_RAISE = "Raise "
-    COMMAND_START_GAME = "Start"
-    COMMAND_END_GAME = "End Game"
-    COMMAND_JOIN_GAME = "Join"
-    
-    ## Regular expression for a mention
-    MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
-    print("Instanced")
+        ## Commands
+        self.COMMAND_RAISE = "Raise "
+        self.COMMAND_START_GAME = "Start"
+        self.COMMAND_END_GAME = "End Game"
+        self.COMMAND_JOIN_GAME = "Join"
+        
+        ## Regular expression for a mention
+        self.MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
+        print("Instanced")
 
     def test_bot(self):
         if self.slack_client.rtm_connect(with_team_state=False):
@@ -111,6 +113,10 @@ class TexasHoldemBot:
             channel=channel,
             text=response or default_response
         )
+
+    def add_common_card(self,channel):
+        # Draw Card
+        num, suit = self.deck.draw()
 
     def start_game(self,channel):
         # Shuffle the deck

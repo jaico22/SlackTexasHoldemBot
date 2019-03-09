@@ -1,8 +1,9 @@
 import random
 
 class Deck : 
-    card_numbers = [i / 4 + 2 for i in range(0,52)]
-    card_suits   = [i % 4 for i in range(52)]
+    def __init__(self) :
+        self.card_numbers = [i / 4 + 2 for i in range(0,52)]
+        self.card_suits   = [i % 4 for i in range(52)]
 
     def shuffleCards(self):
         self.card_numbers = [i / 4 + 2 for i in range(0,52)]
