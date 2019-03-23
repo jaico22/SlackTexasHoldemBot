@@ -40,6 +40,9 @@ class TexasHoldemGame:
         lowest_rank = 10
         best_tb = 0
         for i in range(len(self.players)) :
+            # Rank Hands
+            self.hands[i].rank_hand()
+            # Determine if rank is lowest
             if self.hands[i].rank < lowest_rank and self.players_active[i]==True :
                 lowest_rank = self.hands[i].rank
                 winning_player = i
@@ -49,7 +52,7 @@ class TexasHoldemGame:
                 lowest_rank = self.hands[i].rank
                 winning_player = i
                 best_tb = self.hands[i].secondar_tb
-        string_out = str(self.players[winning_player]) + " wins the round and earns " + str(sum(self.bets))
+        string_out = " wins the round and earns " + str(sum(self.bets)) + " chips :moneybag:"
         # Modify chip counts
         print(self.bets)
         for i in range(len(self.players)) :
@@ -58,7 +61,7 @@ class TexasHoldemGame:
             else :
                 self.chips[i] -= self.bets[i]
         
-        return string_out
+        return self.players[winning_player], string_out
 
     def fold(self,user_id):
         ''' 
@@ -166,11 +169,11 @@ class TexasHoldemGame:
             if self.chips[player_idx] >= self.bets[player_idx] - new_bet: 
                 self.bets[player_idx] = new_bet
                 self.has_bet[player_idx] = True
+                return 1
             else : 
                 self.bets[player_idx] == self.chips[player_idx]
                 self.all_in[player_idx] == True
-            print(self.bets)
-            return 1
+                return 2
         else:
             return 0
             
@@ -228,7 +231,14 @@ class TexasHoldemGame:
             return 1
         else :
             return 0
-        
+    
+    def end_game(self):
+        # Cash out each player
+        for player in self.players :
+            self.users_db.cash_out(player,self.chips[player_idx])
+        # Clear everything else
+
+
     def leave_game(self, user_id):
         '''
         Drop user from the game and cash them out
@@ -236,7 +246,9 @@ class TexasHoldemGame:
         player_idx = self.get_player_idx(user_id)
         if player_idx > -1 :        
             self.users_db.cash_out(user_id,self.chips[player_idx])
-        
+            self.players.pop(player_idx)
+            self.all_in.pop(player_idx)
+            self.players_active.pop(player_idx)
 
     def add_player(self, user_id):
         '''

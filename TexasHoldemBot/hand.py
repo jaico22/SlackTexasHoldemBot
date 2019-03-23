@@ -19,34 +19,38 @@ class Hand:
         self.secondar_tb = 0.0
         self.high_card = 0
 
-    def print_hand(self):
+    def print_hand(self,n=-1):
         '''
         Returns a string representation of the players hands
         '''
-        print_hand_out = "Your Current Hand: " + str(len(self.card_nums))
-        for i in range(len(self.card_nums)) :
+        print_hand_out = ""
+        if n == -1 :
+            cards_to_print = range(len(self.card_nums))
+        else :
+            cards_to_print = range(0,n)
+        for i in cards_to_print:
             print_hand_out += "["
             # Print Number
             if self.card_nums[i] <= 10 :
                 print_hand_out += str(self.card_nums[i]) 
             elif self.card_nums[i] == 11 : 
-                print_hand_out += "Jack"
+                print_hand_out += ":jack_o_lantern:"
             elif self.card_nums[i] == 12 : 
-                print_hand_out += "Queen"
+                print_hand_out += ":princess:"
             elif self.card_nums[i] == 13 : 
-                print_hand_out += "King"
+                print_hand_out += ":prince:"
             else :
-                print_hand_out += "Ace"
-            print_hand_out += " of "
+                print_hand_out += ":a:"
+            print_hand_out += ""
             # Print Suit
             if self.card_suits[i] == 0 :
-                print_hand_out += "Spades"
+                print_hand_out += ":spades:"
             elif self.card_suits[i] == 1 :
-                print_hand_out += "Diamonds"
+                print_hand_out += ":diamonds:"
             elif self.card_suits[i] == 2 :
-                print_hand_out += "Clubs"
+                print_hand_out += ":clubs:"
             elif self.card_suits[i] == 3 :
-                print_hand_out += "Hearts"
+                print_hand_out += ":hearts:"
             print_hand_out += "] "
         return print_hand_out
 
@@ -56,8 +60,7 @@ class Hand:
         '''
         self.card_nums.append(num)
         self.card_suits.append(suits)
-        if len(self.card_nums)==7 :
-            self.rank_hand()
+
 
     def rank_hand(self):
         '''
