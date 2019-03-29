@@ -10,6 +10,7 @@ class TexasHoldemGame:
     def __init__(self) : 
         # Player related variables
         self.players = []
+        self.num_active_players = 0
 
         # Blind Related Values
         self.big_blind_player = 0
@@ -269,6 +270,13 @@ class TexasHoldemGame:
             self.users_db.cash_out(user_id,self.players[player_idx].chips)
             self.players.pop(player_idx)
 
+    def count_n_active_players(self) : 
+        cnt = 0 
+        for player in self.players : 
+            if player.active : 
+                cnt += 1
+        return cnt
+        
     def add_player(self, user_id):
         '''
         Adds a player to the game
@@ -287,6 +295,8 @@ class TexasHoldemGame:
                 # Fetch how many chips the player has
                 chips = self.users_db.check_in_and_add_user(user_id)
                 self.players.append(Player(user_id,chips))
+                # Incrememnt number of active player
+                
                 return 1
         else :
             return 1

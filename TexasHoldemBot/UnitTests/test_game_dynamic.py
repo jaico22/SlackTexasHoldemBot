@@ -11,7 +11,7 @@ game_state = 0
 while True :
     ## Init, wait for players
     if game_state == 0 :
-        usr_input = raw_input('Type in Player Name or "start: "')
+        usr_input = input('Type in Player Name or "start: "')
         if usr_input == 'start' :
             game.start_game()
             for current_player_string in game.players : 
@@ -32,11 +32,11 @@ while True :
         print('   fold ')
     ## State 2 : Betting 
     if game_state == 2 :
-        current_player_string = game.players[cur_player]
-        if game.players_active[cur_player] == True and game.all_in[cur_player] == False: 
+        current_player_string = str(game.players[cur_player])
+        if game.players[cur_player].active and not game.players[cur_player].all_in: 
 
             print(current_player_string + " please place bets/call/fold")
-            usr_input = raw_input()
+            usr_input = input()
             print(usr_input[:3])
             valid_command = False
             if usr_input[:5] == 'raise': 
@@ -71,7 +71,7 @@ while True :
             print('Betting completed')
             game_state = 3
             # if everyone folds, go to state 4
-            if game.players_active.count(True) == 1 :
+            if game.count_n_active_players() == 1 :
                 game_state = 4
     if game_state == 3 :
         if len(game.community_cards.card_nums) < 5 :
