@@ -1,2 +1,6 @@
 # Ignore all .pyc files
 *.pyc
+lib/
+bin/
+include/
+__pycache__/
