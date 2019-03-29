@@ -17,7 +17,6 @@ class Users :
         result = None
         for doc in cursor :
             result = doc
-        
         if result == None :
             # If doesn't, insert them into collection
             dictation = {"user_id": user_id, "chips": 1000}

@@ -16,7 +16,7 @@ GAME_STATE_END_OF_GAME = 4
 class TexasHoldemBot:
 
     def __init__(self) : 
-        self.slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
+        self.slack_client = SlackClient('xoxb-535307252355-587102757011-H0JeuiyFEeTFCl69ySbR7hoL')
         self.starterbot_id = None
         self.RTM_READ_DELAY = 1
         
@@ -34,8 +34,8 @@ class TexasHoldemBot:
         if api_out["ok"] :
             for item in api_out['members'] :
                 if item["id"] == user_id : 
-                    print(item["name"])
-                    return item["name"]
+                    print(item["real_name"])
+                    return item["real_name"]
         return None
 
     def notify_user_to_play(self,channel):
@@ -147,7 +147,7 @@ class TexasHoldemBot:
                                 channel=channel,
                                 text=chip_msf 
                             )  
-                        self.game_state == GAME_STATE_INIT
+                        self.game_state = GAME_STATE_INIT
                         self.slack_client.api_call(
                             "channels.setTopic",
                             channel=channel,
@@ -212,7 +212,7 @@ class TexasHoldemBot:
 
             # Leave Game
             if command.startswith("leave"):
-                res = self.game.leave_game(user)
+                self.game.leave_game(user)
                 response = "User has left the game"
 
             # Start Round
@@ -239,7 +239,7 @@ class TexasHoldemBot:
                         topic="A game is in progress! :congaparrot::congaparrot::congaparrot::congaparrot:"
                     )      
                 else : 
-                    response = "No one has joined the game yet... :face_palm:"
+                    response = "Not enough players have joined yet."
         
         # State Betting
         if self.game_state == GAME_STATE_BETTING :
@@ -251,13 +251,18 @@ class TexasHoldemBot:
                 # Raising
                 valid_command = False
                 if command.startswith("raise ") :
-                    res = self.game.raise_bet(self.game.players[self.cur_player],int(command[6:]))
-                    if res == 2 :
-                        response = "Player is all in!"
-                        valid_command = True
-                    elif res == 1 :
-                        response = "Current bet is set to " + str(max(self.game.bets))
-                        valid_command = True
+                    raise_str = command[6:].strip()
+                    if raise_str.isdigit() : 
+                        res = self.game.raise_bet(self.game.players[self.cur_player],int(raise_str))
+                        if res == 2 :
+                            response = "Player is all in!"
+                            valid_command = True
+                        elif res == 1 :
+                            response = "Current bet is set to " + str(max(self.game.bets))
+                            valid_command = True
+                    else : 
+                        response = "... You can't raise '" + raise_str +"'"
+                        
                 # Calling
                 if command.startswith("call"):
                     res = self.game.call(self.game.players[self.cur_player])
@@ -265,19 +270,21 @@ class TexasHoldemBot:
                     valid_command = True
                 # All In
                 if command.startswith("all"):
-                    res = self.game.go_all_in(self.game.players[self.cur_player])
+                    self.game.go_all_in(self.game.players[self.cur_player])
                     response = "Player is all in!"
                     valid_command = True
                 # Fold
                 if command.startswith("fold"):
-                    res = self.game.fold(self.game.players[self.cur_player])
+                    self.game.fold(self.game.players[self.cur_player])
                     response = "Player folds"
                     valid_command = True
                 # Check
                 if command.startswith("check"):
                     res = self.game.check(user)
                     response = "Player Checks"
-                    valid_command = True
+                    if res == 1 : 
+                        valid_command = True
+
                 # Move onto next player after the current player makes a move
                 if valid_command :
                     self.cur_player = ((self.cur_player+1)%len(self.game.players))

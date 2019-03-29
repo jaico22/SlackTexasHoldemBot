@@ -2,18 +2,26 @@ import random
 
 class Deck : 
     def __init__(self) :
-        self.card_numbers = [i / 4 + 2 for i in range(0,52)]
-        self.card_suits   = [i % 4 for i in range(52)]
+        # Initialize cards list
+        self.cards = []
+        # Build deck using "shuffle cards" method
+        self.shuffleCards()
 
     def shuffleCards(self):
-        self.card_numbers = [i / 4 + 2 for i in range(0,52)]
-        self.card_suits = [i % 4 for i in range(52)]
-        random.shuffle(self.card_numbers)
-        random.shuffle(self.card_suits)
+        # Loop through every possible card (assuming 52 cards)
+        # Append a tuple containing (Card number, Suite)
+        for i in range(52) : 
+            self.cards.append((i//4+2,i%4))
+        # Shuffle cards
+        random.shuffle(self.cards)
+        
 
     def draw(self):
-        number = self.card_numbers.pop()
-        suit = self.card_suits.pop()
+        # Remove card from top of the deck
+        card = self.cards.pop()
+        # Parse out data from the tuple
+        number = card[0]
+        suit = card[1]
         return number, suit
 
     def printCard(self,number,suit):

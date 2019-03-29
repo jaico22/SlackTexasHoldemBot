@@ -1,1 +1,1 @@
-source starterbot/bin/activate
+source TexasHoldemBot/bin/activate
