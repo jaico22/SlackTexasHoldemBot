@@ -39,14 +39,14 @@ class TexasHoldemBot:
         return None
 
     def notify_user_to_play(self,channel):
-        player_name = self.get_users_displayname(self.game.players[self.cur_player])
+        player_name = self.get_users_displayname(self.game.players[self.cur_player].user_id)
         strings = []
         # Print Current Bet
-        strings.append("The current bet is at " + str(max(self.game.bets)))
+        strings.append("The current bet is at " + str(self.game.max_bet))
         # Print status of the current player
         strings.append(player_name + ", it's your turn. Your current bet is at " + \
-            str(self.game.bets[self.cur_player]) + " and you have " + \
-            str(self.game.chips[self.cur_player] - self.game.bets[self.cur_player]) + \
+            str(self.game.players[self.cur_player].bet) + " and you have " + \
+            str(self.game.players[self.cur_player].chips - self.game.players[self.cur_player].bet) + \
             " chips at your disposal")
         for string_out in strings:
             self.slack_client.api_call(
@@ -57,7 +57,7 @@ class TexasHoldemBot:
         # Print the users hand
         strings = []
         strings.append('Your current hand: ')
-        strings.append(self.game.hands[self.cur_player].print_hand(2))
+        strings.append(self.game.players[self.cur_player].hand.print_hand(2))
         if len(self.game.community_cards.card_nums) > 0 :
             strings.append('The community hand: ')
             strings.append(self.game.print_community_cards())
@@ -87,7 +87,7 @@ class TexasHoldemBot:
                         if self.game.check_betting_complete() :
                             self.game_state = GAME_STATE_DRAWING
                             # If everyone else folded, end the game
-                            if self.game.players_active.count(True) == 1 :
+                            if self.game.count_n_active_players() == 1 :
                                 self.game_state = GAME_STATE_END_OF_GAME
                         else : 
                             self.notify_user_to_play(channel)
@@ -118,11 +118,11 @@ class TexasHoldemBot:
                     if self.game_state == GAME_STATE_END_OF_GAME :
                         # Show them hands
                         string_out = []
-                        for i in range(len(self.game.players)):
-                            if self.game.players_active[i] : 
-                                player_name = self.get_users_displayname(self.game.players[i])
+                        for player in self.game.players:
+                            if player.active: 
+                                player_name = self.get_users_displayname(player.user_id)
                                 string_out.append(player_name + "'s hand: ")
-                                string_out.append(self.game.hands[i].print_hand(2))
+                                string_out.append(player.hand.print_hand(2))
                         for string in string_out :
                             self.slack_client.api_call(
                                     "chat.postMessage",
@@ -139,8 +139,8 @@ class TexasHoldemBot:
                             text=win_str
                         )         
                         for player in self.game.players : 
-                            n_chips = self.game.fetch_chips(player)
-                            player_name = self.get_users_displayname(player)
+                            n_chips = self.game.fetch_chips(player.user_id)
+                            player_name = self.get_users_displayname(player.user_id)
                             chip_msf = player_name + " has " + str(n_chips) + " chips"            
                             self.slack_client.api_call(
                                 "chat.postMessage",
@@ -223,15 +223,14 @@ class TexasHoldemBot:
                     response_type = "public"
                     self.game_state = GAME_STATE_SET_BLINDS
                     # Notify each player of their hand
-                    for i in range(len(self.game.players)): 
+                    for player in self.game.players: 
                         private_response = "Your hand: "
-                        private_response += self.game.hands[i].print_hand()
-                        player = self.game.players[i]
+                        private_response += player.hand.print_hand()
                         self.slack_client.api_call(
                             "chat.postEphemeral",
                             channel=channel,
                             text=private_response,
-                            user=player 
+                            user=player.user_id 
                         )
                     self.slack_client.api_call(
                         "channels.setTopic",
@@ -245,37 +244,37 @@ class TexasHoldemBot:
         if self.game_state == GAME_STATE_BETTING :
             responce_type = "public"
             # Check if user can actually play...
-            if self.game.players_active[self.cur_player] == True and \
-                self.game.all_in[self.cur_player] == False and \
-                self.game.players[self.cur_player] == user:
+            if self.game.players[self.cur_player].active and \
+                not self.game.players[self.cur_player].all_in and \
+                self.game.players[self.cur_player].user_id == user:
                 # Raising
                 valid_command = False
                 if command.startswith("raise ") :
                     raise_str = command[6:].strip()
                     if raise_str.isdigit() : 
-                        res = self.game.raise_bet(self.game.players[self.cur_player],int(raise_str))
+                        res = self.game.raise_bet(self.game.players[self.cur_player].user_id,int(raise_str))
                         if res == 2 :
                             response = "Player is all in!"
                             valid_command = True
                         elif res == 1 :
-                            response = "Current bet is set to " + str(max(self.game.bets))
+                            response = "Current bet is set to " + str(self.game.max_bet)
                             valid_command = True
                     else : 
                         response = "... You can't raise '" + raise_str +"'"
                         
                 # Calling
                 if command.startswith("call"):
-                    res = self.game.call(self.game.players[self.cur_player])
+                    res = self.game.call(self.game.players[self.cur_player].user_id)
                     response = "Player calls."
                     valid_command = True
                 # All In
                 if command.startswith("all"):
-                    self.game.go_all_in(self.game.players[self.cur_player])
+                    self.game.go_all_in(self.game.players[self.cur_player].user_id)
                     response = "Player is all in!"
                     valid_command = True
                 # Fold
                 if command.startswith("fold"):
-                    self.game.fold(self.game.players[self.cur_player])
+                    self.game.fold(self.game.players[self.cur_player].user_id)
                     response = "Player folds"
                     valid_command = True
                 # Check
@@ -288,7 +287,7 @@ class TexasHoldemBot:
                 # Move onto next player after the current player makes a move
                 if valid_command :
                     self.cur_player = ((self.cur_player+1)%len(self.game.players))
-                    while self.game.players_active[self.cur_player] == False :
+                    while not self.game.players[self.cur_player].active :
                         print(self.cur_player)
 
                     

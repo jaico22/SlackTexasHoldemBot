@@ -60,9 +60,9 @@ class TexasHoldemGame:
         pot = sum_bets
         for player in self.players : 
             if player == winning_player : 
-                player.chips += pot-player.bets
+                player.chips += pot-player.bet
             else :
-                player.chips -= player.bets
+                player.chips -= player.bet
         
         return player.user_id, string_out
 
@@ -276,7 +276,7 @@ class TexasHoldemGame:
             if player.active : 
                 cnt += 1
         return cnt
-        
+
     def add_player(self, user_id):
         '''
         Adds a player to the game
