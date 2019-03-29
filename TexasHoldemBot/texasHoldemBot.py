@@ -16,7 +16,7 @@ GAME_STATE_END_OF_GAME = 4
 class TexasHoldemBot:
 
     def __init__(self) : 
-        self.slack_client = SlackClient('xoxb-535307252355-587102757011-H0JeuiyFEeTFCl69ySbR7hoL')
+        self.slack_client = SlackClient(os.getenv('THBOT_SLACK_API'))
         self.starterbot_id = None
         self.RTM_READ_DELAY = 1
         
