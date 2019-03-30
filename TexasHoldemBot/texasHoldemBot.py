@@ -66,7 +66,7 @@ class TexasHoldemBot:
                 "chat.postEphemeral",
                 channel=channel,
                 text=string_out,
-                user=self.game.players[self.cur_player]
+                user=self.game.players[self.cur_player].user_id
             )
     def test_bot(self):
         if self.slack_client.rtm_connect(with_team_state=False):
@@ -98,6 +98,11 @@ class TexasHoldemBot:
                         self.notify_user_to_play(channel)
                     # Draw new card
                     if self.game_state == GAME_STATE_DRAWING : 
+                        # Reset Current player
+                        self.cur_player = 0
+                        while not self.game.players[self.cur_player].active :
+                            self.cur_player = ((self.cur_player+1)%len(self.game.players))
+                        # Add cards
                         if len(self.game.community_cards.card_nums) < 5 :
                             self.game.add_community_card()
                             while len(self.game.community_cards.card_nums) < 3 :
@@ -195,7 +200,10 @@ class TexasHoldemBot:
 
         # Finds and executes the given command, filling in response
         response = None
-        
+        print('From Usr= '+str(user))
+        if len(self.game.players)>=1 : 
+            print('Expected Usr= ' + str(self.game.players[self.cur_player].user_id))
+
         # STATE INIT
         if self.game_state == GAME_STATE_INIT :
 
@@ -288,6 +296,7 @@ class TexasHoldemBot:
                 if valid_command :
                     self.cur_player = ((self.cur_player+1)%len(self.game.players))
                     while not self.game.players[self.cur_player].active :
+                        self.cur_player = ((self.cur_player+1)%len(self.game.players))
                         print(self.cur_player)
 
                     

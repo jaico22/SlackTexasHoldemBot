@@ -64,7 +64,7 @@ class TexasHoldemGame:
             else :
                 player.chips -= player.bet
         
-        return player.user_id, string_out
+        return winning_player.user_id, string_out
 
     def fold(self,user_id):
         ''' 
@@ -85,7 +85,9 @@ class TexasHoldemGame:
         Adds Card to Community Hand
         '''
         # Reset "has bet"
-        self.has_bet = [False] * len(self.players)
+        for player in self.players : 
+            player.has_bet = False
+        
         if len(self.community_cards.card_nums) < 5 :
             num, suit = self.deck.draw()
             # Add to community pile
@@ -175,7 +177,8 @@ class TexasHoldemGame:
             # Increase max bet when player is valid
             self.max_bet += amnt
             if player.chips >= new_bet: 
-                self.go_all_in(user_id)
+                player.bet += amnt
+                player.has_bet = True
                 return 1
             else : 
                 # Go all in if the bet is larger than their chip count
