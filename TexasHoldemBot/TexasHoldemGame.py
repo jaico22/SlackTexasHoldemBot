@@ -1,6 +1,7 @@
 from deck import Deck
 from hand import Hand
 from users import Users
+from player import Player
 
 import sys
 
@@ -9,16 +10,14 @@ class TexasHoldemGame:
     def __init__(self) : 
         # Player related variables
         self.players = []
-        self.players_active = [] 
-        self.hands = []
-        self.chips = []
-        self.bets = []
-        self.all_in = []
-        self.has_bet = [] 
+        self.num_active_players = 0
+
+        # Blind Related Values
         self.big_blind_player = 0
         self.small_blind_player = 1
         self.big_blind = 15
         self.small_blind = 5
+        self.max_bet = 0
 
         # Game State Related Variables
         self.game_state = 0
@@ -39,33 +38,33 @@ class TexasHoldemGame:
         winning_player = -1 
         lowest_rank = 10
         best_tb = 0
-        for i in range(len(self.players)) :
+        sum_bets = 0 
+        for player in self.players : 
+            # Increment bet sum
+            sum_bets += player.bet
             # Rank Hands
-            self.hands[i].rank_hand()
+            player.hand.rank_hand()
             # Determine if rank is lowest
-            if self.hands[i].rank < lowest_rank and self.players_active[i]==True :
-                lowest_rank = self.hands[i].rank
-                winning_player = i
-                best_tb = self.hands[i].secondar_tb
-            elif self.hands[i].rank == lowest_rank and self.hands[i].secondar_tb > best_tb\
-             and self.players_active[i]==True : 
-                lowest_rank = self.hands[i].rank
-                winning_player = i
-                best_tb = self.hands[i].secondar_tb
-        string_out = " wins the round and earns " + str(sum(self.bets)) + " chips :moneybag:"
+            if player.hand.rank < lowest_rank and player.active :
+                lowest_rank = player.hand.rank
+                winning_player = player
+                best_tb = player.hand.secondar_tb
+            elif player.hand.rank == lowest_rank and player.hand.secondar_tb > best_tb\
+             and player.active : 
+                lowest_rank = player.hand.rank
+                winning_player = player
+                best_tb = player.hand.secondar_tb
+        string_out = " wins the round and earns " + str(sum_bets) + " chips :moneybag:"
         
         # Modify chip counts
-        print(self.bets)
-        pot = sum(self.bets)
-        print('Pot = ' + str(pot))
-        for i in range(len(self.players)) :
-            print('player - ' + str(i) + ' bet - ' + str(self.bets[i]) + ' winner = ' + str(winning_player))
-            if i == winning_player : 
-                self.chips[i] += pot-self.bets[i]
+        pot = sum_bets
+        for player in self.players : 
+            if player == winning_player : 
+                player.chips += pot-player.bet
             else :
-                self.chips[i] -= self.bets[i]
+                player.chips -= player.bet
         
-        return self.players[winning_player], string_out
+        return winning_player.user_id, string_out
 
     def fold(self,user_id):
         ''' 
@@ -73,8 +72,7 @@ class TexasHoldemGame:
         '''
         player_idx = self.get_player_idx(user_id)
         if player_idx > -1 :
-            self.players_active[player_idx] = False
-            print(self.players_active)
+            self.players[player_idx].active = False
 
     def print_community_cards(self):
         '''
@@ -87,14 +85,16 @@ class TexasHoldemGame:
         Adds Card to Community Hand
         '''
         # Reset "has bet"
-        self.has_bet = [False] * len(self.players)
+        for player in self.players : 
+            player.has_bet = False
+        
         if len(self.community_cards.card_nums) < 5 :
             num, suit = self.deck.draw()
             # Add to community pile
             self.community_cards.add_card(num,suit)
             # Add to each hand
-            for i in range(len(self.players)):
-                self.hands[i].add_card(num,suit)
+            for player in self.players : 
+                player.hand.add_card(num,suit)
         else : 
             self.determine_winner()
         
@@ -103,7 +103,7 @@ class TexasHoldemGame:
         Returns index in players list where user is found
         '''
         for i in range(len(self.players)):
-            if self.players[i] == user_id :
+            if self.players[i].user_id == user_id :
                 return i
         return -1
 
@@ -113,7 +113,7 @@ class TexasHoldemGame:
         '''
         player_idx = self.get_player_idx(user_id)
         if player_idx > -1 :
-            return self.chips[player_idx]
+            return self.players[player_idx].chips
         else :
             return -1
 
@@ -122,43 +122,45 @@ class TexasHoldemGame:
         Places all of the players chips in the pot
         '''
         player_idx = self.get_player_idx(user_id)
-        self.bets[player_idx] = self.chips[player_idx]
-        self.has_bet[player_idx] = True
-        self.all_in[player_idx] = True
+        self.players[player_idx].bet = self.players[player_idx].chips
+        self.players[player_idx].has_bet = True
+        self.players[player_idx].all_in= True
 
     def check(self,user_id):
         # Determine if user can check
         min_bet = 10000
         max_bet = 0 
-        for i in range(len(self.bets)) :
-            if self.players_active[i] == True and self.all_in[i]==False:
-                if self.bets[i] < min_bet : 
-                    min_bet = self.bets[i]
-                if self.bets[i] > max_bet : 
-                    max_bet = self.bets[i]
-        if min_bet == max_bet :
+        # Check if checking is a valid move
+        for player in self.players : 
+            if player.active and not player.all_in : 
+                if player.bet < min_bet : 
+                    min_bet = player.bet 
+                if player.bet > max_bet : 
+                    max_bet = player.bet
+        # If it is, mark player as 'has bet' and move on
+        if min_bet == max_bet : 
             player_idx = self.get_player_idx(user_id)
-            self.has_bet[player_idx] = True       
+            self.players[player_idx].has_bet = True
             return 1
-        else :
-            return 0
+        else : 
+            return 0 
 
     def call(self,user_id):
         '''
         Modified bet to equal maximum bet
         '''
-        new_bet = max(self.bets)
+        new_bet = self.max_bet 
         player_idx = self.get_player_idx(user_id)
         if player_idx > -1 :
-            if self.chips[player_idx] >= new_bet : 
-                self.bets[player_idx] = new_bet
-                self.has_bet[player_idx] = True
-                print(self.bets)
+            player = self.players[player_idx]
+            if player.chips >= new_bet : 
+                player.bet = new_bet
+                player.has_bet = True
                 return 1
             else : 
-                self.bets[player_idx] = self.chips[player_idx]
-                self.has_bet[player_idx] = True
-                self.all_in[player_idx] = True
+                player.bets = player.chips
+                player.has_bet = True
+                player.all_in = True
                 return 2
         else :
             return 0
@@ -169,19 +171,18 @@ class TexasHoldemGame:
         '''
         # Find user id in player list
         player_idx = self.get_player_idx(user_id)
-        new_bet = max(self.bets) + amnt
-        print('new_bet= ' + str(new_bet))
+        new_bet = self.max_bet + amnt
         if player_idx > -1 :
-            print('cur_bet= ' + str(self.bets[player_idx]))
-            if self.chips[player_idx] >= new_bet: 
-                print(self.bets[player_idx] - new_bet)
-                self.bets[player_idx] = new_bet
-                self.has_bet[player_idx] = True
+            player = self.players[player_idx]
+            # Increase max bet when player is valid
+            self.max_bet += amnt
+            if player.chips >= new_bet: 
+                player.bet += amnt
+                player.has_bet = True
                 return 1
             else : 
-                self.bets[player_idx] = self.chips[player_idx]
-                print('player is all in')
-                self.all_in[player_idx] = True
+                # Go all in if the bet is larger than their chip count
+                self.go_all_in(user_id)
                 return 2
         else:
             return 0
@@ -192,10 +193,10 @@ class TexasHoldemGame:
         Returns a string containing description of hand
         '''
         # Find user id in player list
-        for i in range(len(self.players)) :
-            if self.players[i] == user_id : 
-                hand = self.hands[i].print_hand()
-                return hand
+        for player in self.players : 
+            if player.user_id == user_id : 
+                hand_string = player.hand.print_hand()
+                return hand_string
                 
         return "Player is not in the game"
 
@@ -206,19 +207,25 @@ class TexasHoldemGame:
         # Find minimum and maximum bet of all players that have no folded and are not all in
         min_bet = 999999999
         max_bet = 0
-        print(self.bets)
-        for i in range(len(self.bets)) :
+        has_bet_count = 0
+        active_count = 0
+        for player in self.players :
             # Minimum is only players active
-            if (self.players_active[i] == True and self.all_in[i]==False):
-                if self.bets[i] < min_bet : 
-                    min_bet = self.bets[i]
+            if player.active and not player.all_in : 
+                if player.bet < min_bet : 
+                    min_bet = player.bet
             # Maxmimum can be set by any active player or someone who is all in
-            if (self.players_active[i] == True or self.all_in[i]==True):
-                if self.bets[i] > max_bet : 
-                    max_bet = self.bets[i]
+            if player.active or player.all_in :
+                if player.bet > max_bet : 
+                    max_bet = player.bet
+            # Check count of players who have bet
+            if player.has_bet : 
+                has_bet_count += 1
+            # Count number of active players
+            if player.active : 
+                active_count += 1
         print('Max Bet = ' + str(max_bet) + "Min Bet = " + str(min_bet))
-        if ((self.has_bet.count(True) == self.players_active.count(True))and\
-        (max_bet == min_bet))or(self.players_active.count(True)==1):
+        if ((active_count == has_bet_count) and (max_bet == min_bet))or(active_count == 1):
             return 1
         else:
             return 0
@@ -228,17 +235,20 @@ class TexasHoldemGame:
         Starts the game of poker!
         Deals two cards to each player and moves state machine to betting
         '''
-        self.players_active = [True]*len(self.players)
-        self.all_in = [False]*len(self.players)
+        # Reset player values
+        for player in self.players : 
+            player.reset()
+        # Reset max bet
+        self.max_bet = 0
         if self.game_state==self.GS_INIT : 
             self.deck.shuffleCards()
-            for hand in self.hands : 
+            for player in self.players : 
                 # First card
                 num, suit = self.deck.draw()
-                hand.add_card(num,suit)
+                player.hand.add_card(num,suit)
                 # Second card
                 num, suit = self.deck.draw()
-                hand.add_card(num,suit)
+                player.hand.add_card(num,suit)
                 # Move State Machine
             self.game_state = self.GS_BETTING
             return 1
@@ -250,7 +260,7 @@ class TexasHoldemGame:
         for player in self.players :
             # Determine player idx 
             player_idx = self.get_player_idx(player)
-            self.users_db.cash_out(player,self.chips[player_idx])
+            self.users_db.cash_out(player,self.players[player_idx].chips)
         # Clear everything else
 
 
@@ -260,14 +270,15 @@ class TexasHoldemGame:
         '''
         player_idx = self.get_player_idx(user_id)
         if player_idx > -1 :        
-            self.users_db.cash_out(user_id,self.chips[player_idx])
+            self.users_db.cash_out(user_id,self.players[player_idx].chips)
             self.players.pop(player_idx)
-            self.all_in.pop(player_idx)
-            self.bets.pop(player_idx)
-            self.players_active.pop(player_idx)
-            self.has_bet.pop(player_idx)
-            self.chips.pop(player_idx)
-            self.hands.pop(player_idx)
+
+    def count_n_active_players(self) : 
+        cnt = 0 
+        for player in self.players : 
+            if player.active : 
+                cnt += 1
+        return cnt
 
     def add_player(self, user_id):
         '''
@@ -279,21 +290,16 @@ class TexasHoldemGame:
         if self.game_state==self.GS_INIT : 
             user_not_playing = True
             for player in self.players:
-                if player == user_id :
+                if player.user_id == user_id :
                     user_not_playing = False
                     return 2
-                    break
+                    
             if user_not_playing == True :
                 # Fetch how many chips the player has
                 chips = self.users_db.check_in_and_add_user(user_id)
-                # Update local variables
-                self.players.append(user_id)
-                self.players_active.append(True)
-                self.hands.append(Hand())
-                self.chips.append(chips)
-                self.bets.append(0)
-                self.all_in.append(False)
-                self.has_bet.append(False)
+                self.players.append(Player(user_id,chips))
+                # Incrememnt number of active player
+                
                 return 1
         else :
             return 1
